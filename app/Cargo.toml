@@ -21,7 +21,11 @@ slint-build = { workspace = true }
 # here is what lets `cargo apk run` work without an explicit `--target`.
 [package.metadata.android]
 package = "{{android_package}}"
-build_targets = ["aarch64-linux-android"]
+# Build both ABIs by default: aarch64 is the only architecture on real
+# Android devices; x86_64 is what the default emulator system image uses
+# on Linux/Windows dev machines. With both listed, the produced APK runs
+# unchanged on a phone or on the local emulator.
+build_targets = ["aarch64-linux-android", "x86_64-linux-android"]
 resources = "android-res"
 assets = "android-assets"
 

@@ -65,7 +65,8 @@ jobs:
               app/ui/main.slint \
               .devcontainer/Dockerfile \
               .devcontainer/devcontainer.json \
-              .github/workflows/ci.yml; do
+              .github/workflows/ci.yml \
+              justfile; do
             if [ ! -f "$f" ]; then
               echo "::error::expected file is missing: $f"
               exit 1

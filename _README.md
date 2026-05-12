@@ -52,33 +52,32 @@ the exact versions. To set things up manually instead:
 
 ## Build & run
 
-With a device connected over `adb` (or an emulator running):
+Everyday commands live in the root `justfile`. Install `just` once with
+`cargo install just --locked` (or `brew install just`, `apt install just`,
+etc.), then:
 
 ```sh
-cargo apk run
+just                 # list available recipes (default action)
+just fmt             # cargo fmt --all
+just clippy          # cargo clippy ... -D warnings
+just test            # cargo test --workspace
+just build           # debug APK
+just release         # release APK at target/aarch64-linux-android/release/apk/
+just run             # build, install, launch — starts an emulator if none is running
+just ci              # fmt-check + clippy + test (mirrors CI on PRs)
 ```
 
-The package selector is handled by `default-members = ["app"]` in the
-workspace `Cargo.toml`; the target by `build_targets = ["aarch64-linux-android"]`
-in `app/Cargo.toml`. Override either with the usual flags if needed.
+`just run` will reuse a running emulator or attached device if there is
+one; otherwise it starts an emulator from your AVD list (override with
+`AVD=<name> just run`) and waits for boot before invoking `cargo apk run`.
 
-For a release-signed APK on disk without installing:
-
-```sh
-cargo apk build --release
-```
-
-The resulting APK lands under
+`just run` works without `-p` or `--target` because the workspace sets
+`default-members = ["app"]` and `app/Cargo.toml` pins
+`build_targets = ["aarch64-linux-android"]`. The resulting APK lands at
 `target/aarch64-linux-android/release/apk/{{crate_name}}.apk`.
 
-## Running the core tests on the host
-
-```sh
-cargo test --workspace
-```
-
-(`default-members` would otherwise limit `cargo test` to the cdylib crate,
-which Android-gates most of its code.)
+If you prefer raw cargo invocations they all still work — `just` is
+a convenience layer, not a wrapper that adds new behavior.
 
 ## Adding a JVM-side Rust shim later
 
@@ -93,12 +92,16 @@ JVM class), the natural extension is:
 
 ## CI
 
-`.github/workflows/ci.yml` ships with this project. It runs:
+`.github/workflows/ci.yml` ships with this project. Each job calls into
+the same `justfile` recipes you use locally:
 
-- `cargo fmt --check` and `cargo clippy -D warnings` on every push and PR
-- `cargo test --workspace` on every push and PR
-- `cargo apk build --release` on pushes to `main`/`master`, uploading the
-  resulting `.apk` as the `apk-aarch64` artifact
+- `just fmt-check` and `just clippy` on every push and PR
+- `just test` on every push and PR
+- `just apk` on pushes to `main`/`master`, uploading the resulting `.apk`
+  as the `apk-aarch64` artifact
+
+This keeps CI and local development in sync — if `just ci` is green on
+your laptop, the PR's lint/test jobs will be too.
 
 The Android build job sets up JDK 17, the Android SDK (platform 34,
 build-tools 34.0.0), NDK r27, and `cargo-apk` — mirroring what the

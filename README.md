@@ -32,7 +32,8 @@ my-app/
 ├── rust-toolchain.toml    # stable + aarch64-linux-android target
 ├── .devcontainer/         # Rust + JDK 17 + Android SDK 34 + NDK r27, pinned
 ├── .github/workflows/
-│   └── ci.yml             # fmt + clippy + test on every PR; apk build on main
+│   └── ci.yml             # Calls into `justfile`; fmt + clippy + test on every PR; apk on main
+├── justfile               # Recipes shared by local dev and CI (just --list)
 ├── core/                  # Pure-logic rlib (no Slint, no Android)
 └── app/                   # Slint cdylib + android_main, packaged by cargo-apk
 ```

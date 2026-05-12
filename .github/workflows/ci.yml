@@ -7,72 +7,64 @@ on:
   workflow_dispatch:
 
 # Out-of-the-box CI for projects generated from the slint-mobile template.
+# All recipes live in the root `justfile`; this workflow just installs
+# toolchains and calls into it, so `just <recipe>` works identically in
+# CI and on a developer's laptop.
 #
-# - `fmt` and `clippy` run on every push and PR.
-# - `test` runs the host-side workspace tests.
-# - `apk` cross-compiles to aarch64-linux-android and packages an APK;
-#   it only runs on pushes to main/master so PRs stay fast.
+# - `fmt` / `clippy` / `test` run on every push and PR.
+# - `apk` cross-compiles for aarch64-linux-android on pushes to main/master
+#   and uploads the resulting APK as a build artifact.
 #
 # Security note: this workflow uses `github.event_name` and `github.ref`
-# only inside a workflow-context `if:` expression (which GitHub evaluates
-# safely, not as shell). All `$VAR` references in `run:` blocks resolve to
-# values set in the workflow's own `env:` block or to runner-managed
-# variables (`ANDROID_HOME`, `GITHUB_ENV`). No untrusted PR/issue/commit
-# fields are interpolated into shell commands.
+# only inside a workflow-context `if:` expression. No untrusted PR / issue
+# / commit fields are interpolated into shell commands; all `$VAR`
+# references in `run:` blocks come from the workflow's own `env:` block
+# or runner-managed variables (`ANDROID_HOME`, `GITHUB_ENV`).
 
 jobs:
   fmt:
-    name: rustfmt
+    name: just fmt-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      - run: cargo fmt --all -- --check
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - run: just fmt-check
 
   clippy:
-    name: clippy
+    name: just clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - name: Install Slint host build deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            pkg-config \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            clang \
-            cmake \
-            ninja-build
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - run: just install-host-deps
       - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: just clippy
 
   test:
-    name: cargo test (host)
+    name: just test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install Slint host build deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            pkg-config \
-            libfontconfig1-dev \
-            libfreetype6-dev \
-            clang \
-            cmake \
-            ninja-build
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+      - run: just install-host-deps
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace
+      - run: just test
 
   apk:
-    name: Build APK (aarch64)
+    name: just release (aarch64-linux-android)
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -107,12 +99,11 @@ jobs:
 
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-apk
+          tool: just,cargo-apk
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: cargo apk build --release
-        run: cargo apk build --release
+      - run: just release
 
       - uses: actions/upload-artifact@v4
         with:
