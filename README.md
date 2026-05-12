@@ -55,10 +55,16 @@ Files that drive the templating:
 - [`cargo-generate.toml`](cargo-generate.toml) — placeholder definitions
   (`android_package`, `app_label`), the `ignore` list, and the post-hook
   registration.
-- [`post-script.rhai`](post-script.rhai) — renames `_README.md` to
-  `README.md` after generation.
+- [`post-script.rhai`](post-script.rhai) — renames `_README.md` →
+  `README.md` and `_ci.yml` → `.github/workflows/ci.yml` after generation.
 - [`_README.md`](_README.md) — the README that ships with the generated
   project (carries liquid placeholders).
+- [`_ci.yml`](_ci.yml) — the GitHub Actions workflow that ships with the
+  generated project. Stored at the template root with a leading underscore
+  so GitHub Actions does **not** run it against the template repo (it
+  would fail because the workspace `Cargo.toml` still contains
+  `{{crate_name}}` placeholders). Only `.github/workflows/template.yml`
+  runs on the template repo itself.
 
 To keep Rust source files free of liquid syntax (so the template repo
 stays editor-friendly), the core crate's templated package name

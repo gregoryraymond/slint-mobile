@@ -74,9 +74,10 @@ jobs:
           done
 
           # Files that must NOT exist after generation (excluded by `ignore`
-          # or removed by the post-hook).
+          # or removed/moved by the post-hook).
           for f in \
               _README.md \
+              _ci.yml \
               post-script.rhai \
               cargo-generate.toml \
               .github/workflows/template.yml; do
