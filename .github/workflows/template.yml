@@ -103,6 +103,19 @@ jobs:
             exit 1
           fi
 
+      - name: Install Slint host build deps
+        # Slint's renderer-skia drags in fontconfig + freetype when building
+        # for the Linux host. Mirrors what .devcontainer/Dockerfile installs.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            clang \
+            cmake \
+            ninja-build
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: scratch/slint-mobile-ci
