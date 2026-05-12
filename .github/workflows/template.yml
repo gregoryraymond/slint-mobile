@@ -39,9 +39,10 @@ jobs:
       - name: Generate scratch project
         run: |
           rm -rf scratch
-          cargo generate --path . \
+          mkdir -p scratch
+          cd scratch
+          cargo generate --path "$GITHUB_WORKSPACE" \
             --name slint-mobile-ci \
-            --destination ./scratch \
             --define android_package=com.example.ci \
             --define app_label="CI Probe"
 

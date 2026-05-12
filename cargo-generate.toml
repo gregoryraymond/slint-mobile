@@ -11,6 +11,7 @@ ignore = [
     "target/",
     "Cargo.lock",
     ".claude/",
+    ".github/",
 ]
 
 [placeholders.android_package]
