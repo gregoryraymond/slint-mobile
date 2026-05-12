@@ -1,0 +1,41 @@
+[package]
+name = "{{crate_name}}"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+slint = { workspace = true }
+app_core = { workspace = true }
+
+[build-dependencies]
+slint-build = { workspace = true }
+
+# cargo-apk configuration. Everything under [package.metadata.android] is
+# read by cargo-apk when packaging the cdylib into an APK. `build_targets`
+# here is what lets `cargo apk run` work without an explicit `--target`.
+[package.metadata.android]
+package = "{{android_package}}"
+build_targets = ["aarch64-linux-android"]
+resources = "android-res"
+assets = "android-assets"
+
+[package.metadata.android.sdk]
+min_sdk_version = 24
+target_sdk_version = 34
+
+[package.metadata.android.application]
+label = "{{app_label}}"
+# theme = "@android:style/Theme.DeviceDefault.NoActionBar"
+
+# Slint's Skia renderer uses Vulkan when available but falls back to GL.
+# Declare Vulkan as optional so the APK still installs on Vulkan-less devices.
+[[package.metadata.android.uses_feature]]
+name = "android.hardware.vulkan.level"
+required = false
+version = 1

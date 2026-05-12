@@ -1,0 +1,111 @@
+name: Template CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Verifies the cargo-generate template produces a valid project and that
+# the generated workspace at least type-checks for the host target.
+#
+# Security note: all values referenced in `run:` blocks below are hardcoded
+# literals or controlled paths. The workflow does not interpolate any
+# `github.event.*` fields (issue titles, PR bodies, commit messages, branch
+# names, etc.) into shell commands, so it is not exposed to GitHub Actions
+# workflow-injection vectors.
+#
+# This job intentionally does NOT run a full `cargo apk build` — that needs
+# the Android NDK and a large Skia C++ build. The .devcontainer/ Dockerfile
+# documents the full toolchain; add a separate Android-build job here if a
+# template regression ever slips past host-only checking.
+
+jobs:
+  generate-and-check:
+    name: Generate scratch project and type-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-generate
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-generate
+
+      - name: Generate scratch project
+        run: |
+          rm -rf scratch
+          cargo generate --path . \
+            --name slint-mobile-ci \
+            --destination ./scratch \
+            --define android_package=com.example.ci \
+            --define app_label="CI Probe"
+
+      - name: Verify file layout and placeholder substitution
+        working-directory: scratch/slint-mobile-ci
+        run: |
+          set -euo pipefail
+
+          # Files that must exist in the generated project.
+          for f in \
+              Cargo.toml \
+              rust-toolchain.toml \
+              .gitignore \
+              README.md \
+              core/Cargo.toml \
+              core/src/lib.rs \
+              app/Cargo.toml \
+              app/build.rs \
+              app/src/lib.rs \
+              app/ui/main.slint \
+              .devcontainer/Dockerfile \
+              .devcontainer/devcontainer.json; do
+            if [ ! -f "$f" ]; then
+              echo "::error::expected file is missing: $f"
+              exit 1
+            fi
+          done
+
+          # Files that must NOT exist after generation (excluded by `ignore`
+          # or removed by the post-hook).
+          for f in \
+              _README.md \
+              post-script.rhai \
+              cargo-generate.toml; do
+            if [ -f "$f" ]; then
+              echo "::error::stray template file leaked into output: $f"
+              exit 1
+            fi
+          done
+
+          # Liquid substitutions actually happened.
+          grep -F 'name = "slint_mobile_ci_core"'    core/Cargo.toml
+          grep -F 'name = "slint_mobile_ci"'         app/Cargo.toml
+          grep -F 'package = "com.example.ci"'       app/Cargo.toml
+          grep -F 'label = "CI Probe"'               app/Cargo.toml
+          grep -F 'title: "CI Probe"'                app/ui/main.slint
+          grep -F 'package = "slint_mobile_ci_core"' Cargo.toml
+          grep -F '"name": "slint-mobile-ci"'        .devcontainer/devcontainer.json
+
+          # No raw liquid placeholders should remain anywhere.
+          if grep -RFn '{{' . \
+                --include="*.toml" \
+                --include="*.rs" \
+                --include="*.slint" \
+                --include="*.md" \
+                --include="*.json"; then
+            echo "::error::unsubstituted '{{' placeholder found in generated project"
+            exit 1
+          fi
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: scratch/slint-mobile-ci
+
+      - name: Type-check generated workspace
+        working-directory: scratch/slint-mobile-ci
+        run: cargo check --workspace

@@ -1,0 +1,27 @@
+# cargo-generate template config for slint-mobile.
+#
+# This file is consumed (and removed) by `cargo generate`. The template repo's
+# own README (the one shown on GitHub) is excluded via `ignore`, and the
+# post-hook renames `_README.md` into `README.md` in the generated project.
+
+[template]
+cargo_generate_version = ">=0.21.0"
+ignore = [
+    "README.md",
+    "target/",
+    "Cargo.lock",
+    ".claude/",
+]
+
+[placeholders.android_package]
+type = "string"
+prompt = "Android package identifier (reverse-DNS, lowercase)"
+default = "com.example.{{crate_name}}"
+
+[placeholders.app_label]
+type = "string"
+prompt = "App display label (shown under the launcher icon)"
+default = "{{project-name | replace: \"-\", \" \" | replace: \"_\", \" \"}}"
+
+[hooks]
+post = ["post-script.rhai"]
