@@ -61,15 +61,28 @@ just                 # list available recipes (default action)
 just fmt             # cargo fmt --all
 just clippy          # cargo clippy ... -D warnings
 just test            # cargo test --workspace
-just build           # debug APK
-just release         # release APK at target/aarch64-linux-android/release/apk/
-just run             # build, install, launch — starts an emulator if none is running
+just build           # debug APK (multi-arch: aarch64 + x86_64)
+just release         # release APK at target/release/apk/
+just setup-emulator  # create the "slint" AVD + download its system image (once)
+just run             # build, install, launch on emulator/device
 just ci              # fmt-check + clippy + test (mirrors CI on PRs)
 ```
 
-`just run` will reuse a running emulator or attached device if there is
-one; otherwise it starts an emulator from your AVD list (override with
-`AVD=<name> just run`) and waits for boot before invoking `cargo apk run`.
+### First-run flow
+
+1. `just setup-emulator` — creates an AVD named `slint` and downloads the
+   matching `android-34` system image (~700 MB; ABI auto-picked to match
+   your host: `x86_64` on Intel/AMD, `arm64-v8a` on Apple Silicon).
+2. `just run` — builds a debug APK, starts the `slint` emulator (or reuses
+   any device/emulator already on `adb devices`), waits for it to finish
+   booting, then installs and launches the app.
+
+Subsequent `just run` invocations reuse the running emulator, so they
+take only as long as the rebuild + install. Set `AVD=<name>` to target a
+different AVD; close the emulator window when you're done.
+
+The APK is multi-arch (`aarch64` + `x86_64`) so the same artifact installs
+on real devices and on the default emulator system image.
 
 `just run` works without `-p` or `--target` because the workspace sets
 `default-members = ["app"]` and `app/Cargo.toml` pins

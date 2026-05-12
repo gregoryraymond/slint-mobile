@@ -77,7 +77,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android,x86_64-linux-android
 
       - uses: actions/setup-java@v4
         with:
@@ -107,6 +107,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: apk-aarch64
-          path: target/aarch64-linux-android/release/apk/*.apk
+          name: apk
+          # Multi-arch APK lands at target/release/apk/; single-arch builds
+          # land under target/<triple>/release/apk/. Glob covers both.
+          path: target/**/apk/*.apk
           if-no-files-found: error

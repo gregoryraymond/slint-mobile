@@ -66,14 +66,15 @@ RUN mkdir -p "${ANDROID_HOME}/cmdline-tools" \
 # Run as the vscode user so cargo's install dir is in $HOME/.cargo and
 # matches what rust-analyzer / the user's shell will see at runtime.
 USER vscode
-RUN rustup target add aarch64-linux-android \
-    && cargo install cargo-apk --locked
+RUN rustup target add aarch64-linux-android x86_64-linux-android \
+    && cargo install cargo-apk just --locked
 
 # Sanity check: print versions at image-build time so any drift is obvious
 # in the build log.
 RUN rustc --version \
     && cargo --version \
     && cargo apk --version \
+    && just --version \
     && javac -version \
     && sdkmanager --version
 

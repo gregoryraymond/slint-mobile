@@ -23,38 +23,74 @@ clippy:
 test:
     cargo test --workspace
 
-# Build a debug APK at target/aarch64-linux-android/debug/apk/
+# Build a debug APK (multi-arch: aarch64 + x86_64)
 build:
-    cargo apk build
+    # cargo-apk doesn't honor `default-members`; run from the app/ dir so
+    # the cdylib package is selected unambiguously.
+    cd app && cargo apk build
 
-# Build a release APK at target/aarch64-linux-android/release/apk/
+# Build a release APK (multi-arch: aarch64 + x86_64)
 release:
-    cargo apk build --release
+    cd app && cargo apk build --release
 
-# Build, install, and launch on a running emulator or attached device.
-# If nothing is connected, starts an Android emulator first. Pass an AVD
-# name via $AVD; otherwise the first one from `emulator -list-avds` wins.
+# Idempotent: re-running on an existing AVD is a no-op for creation. Picks
+# the system-image ABI to match the host: x86_64 on Intel/AMD, arm64-v8a
+# on Apple Silicon. Requires ANDROID_HOME pointing at a working SDK.
+# Create an Android emulator (AVD "slint") and download its system image
+setup-emulator:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${ANDROID_HOME:?ANDROID_HOME is not set — install the Android SDK or use the devcontainer}"
+    case "$(uname -m)" in
+      arm64|aarch64) abi=arm64-v8a ;;
+      x86_64|amd64)  abi=x86_64 ;;
+      *) echo "Unsupported host arch: $(uname -m)"; exit 1 ;;
+    esac
+    image="system-images;android-34;default;${abi}"
+    sdkmanager_bin="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+    avdmanager_bin="${ANDROID_HOME}/cmdline-tools/latest/bin/avdmanager"
+    emulator_bin="${ANDROID_HOME}/emulator/emulator"
+    echo "Installing $image (this may download ~700MB on first run)..."
+    # `yes |` would trip `set -o pipefail` with SIGPIPE (141) once sdkmanager
+    # closes stdin; a finite stream of "y" lines avoids that.
+    printf 'y\n%.0s' {1..100} | "$sdkmanager_bin" --install "$image" > /dev/null
+    if "$emulator_bin" -list-avds | grep -qx slint; then
+        echo "AVD 'slint' already exists — skipping create."
+    else
+        echo "Creating AVD 'slint'..."
+        echo "no" | "$avdmanager_bin" create avd -n slint -k "$image" --force
+    fi
+    echo "Done. Run 'just run' to launch the app."
+
+# Starts the "slint" AVD if no device is connected. Set AVD=<name> to use
+# a different one. Run 'just setup-emulator' once first if you don't have
+# any AVDs yet.
+# Build, install, and launch the app on emulator/device
 run:
     #!/usr/bin/env bash
     set -euo pipefail
     if ! adb get-state > /dev/null 2>&1; then
-        emulator_bin="${ANDROID_HOME:?ANDROID_HOME is not set}/emulator/emulator"
+        : "${ANDROID_HOME:?ANDROID_HOME is not set}"
+        emulator_bin="${ANDROID_HOME}/emulator/emulator"
         avd="${AVD:-$("$emulator_bin" -list-avds | head -n 1)}"
         if [ -z "$avd" ]; then
-            echo "No AVD found. Create one with:"
-            echo "  sdkmanager 'system-images;android-34;default;x86_64'"
-            echo "  avdmanager create avd -n slint -k 'system-images;android-34;default;x86_64'"
+            echo "No AVD found. Run 'just setup-emulator' to create one,"
+            echo "or set AVD=<name> just run to use an existing AVD."
             exit 1
         fi
         echo "Starting emulator: $avd"
-        "$emulator_bin" -avd "$avd" -no-boot-anim -no-snapshot > /dev/null 2>&1 &
-        adb wait-for-device
-        until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
-            sleep 2
-        done
-        echo "Emulator ready."
+        emulator_args=(-avd "$avd" -no-boot-anim -no-snapshot-save)
+        # Auto-enable headless mode on boxes without a display (e.g. CI).
+        if [ -z "${DISPLAY:-}" ] || [ "${HEADLESS:-0}" = "1" ]; then
+            emulator_args+=(-no-window -gpu swiftshader_indirect)
+        fi
+        "$emulator_bin" "${emulator_args[@]}" > /tmp/emulator.log 2>&1 &
     fi
-    cargo apk run
+    echo "Waiting for device + full boot..."
+    adb wait-for-device
+    adb shell 'while [ "$(getprop sys.boot_completed | tr -d "\r")" != "1" ]; do sleep 2; done'
+    echo "Device ready."
+    cd app && cargo apk run
 
 # Full local CI pipeline (mirrors what runs on PRs)
 ci: fmt-check clippy test
