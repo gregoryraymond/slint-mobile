@@ -11,7 +11,12 @@ ignore = [
     "target/",
     "Cargo.lock",
     ".claude/",
-    ".github/",
+    # The template-CI workflow tests this template; it is not relevant to
+    # generated projects (and its literal `{{` inside a `grep` command
+    # would confuse cargo-generate's liquid parser anyway). The other
+    # workflows under `.github/workflows/` *are* shipped to generated
+    # projects as their out-of-the-box CI.
+    ".github/workflows/template.yml",
 ]
 
 [placeholders.android_package]

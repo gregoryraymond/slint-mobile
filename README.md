@@ -28,16 +28,24 @@ build and run.
 
 ```
 my-app/
-├── Cargo.toml          # Workspace, default-members = ["app"]
-├── rust-toolchain.toml # stable + aarch64-linux-android target
-├── .devcontainer/      # Rust + JDK 17 + Android SDK 34 + NDK r27, pinned
-├── core/               # Pure-logic rlib (no Slint, no Android)
-└── app/                # Slint cdylib + android_main, packaged by cargo-apk
+├── Cargo.toml             # Workspace, default-members = ["app"]
+├── rust-toolchain.toml    # stable + aarch64-linux-android target
+├── .devcontainer/         # Rust + JDK 17 + Android SDK 34 + NDK r27, pinned
+├── .github/workflows/
+│   └── ci.yml             # fmt + clippy + test on every PR; apk build on main
+├── core/                  # Pure-logic rlib (no Slint, no Android)
+└── app/                   # Slint cdylib + android_main, packaged by cargo-apk
 ```
 
 `cargo apk run` in the generated project builds, installs, and launches
 on an attached device — no `-p` or `--target` flags needed (handled by
 `default-members` and `[package.metadata.android].build_targets`).
+
+The shipped `ci.yml` runs `cargo fmt --check`, `cargo clippy -D warnings`,
+and `cargo test --workspace` on every push and pull request, then on
+pushes to `main`/`master` cross-compiles to `aarch64-linux-android` and
+uploads the resulting APK as a build artifact. Generated projects therefore
+come out of the gate with green CI.
 
 ## Template internals
 

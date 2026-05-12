@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# Out-of-the-box CI for projects generated from the slint-mobile template.
+#
+# - `fmt` and `clippy` run on every push and PR.
+# - `test` runs the host-side workspace tests.
+# - `apk` cross-compiles to aarch64-linux-android and packages an APK;
+#   it only runs on pushes to main/master so PRs stay fast.
+#
+# Security note: this workflow uses `github.event_name` and `github.ref`
+# only inside a workflow-context `if:` expression (which GitHub evaluates
+# safely, not as shell). All `$VAR` references in `run:` blocks resolve to
+# values set in the workflow's own `env:` block or to runner-managed
+# variables (`ANDROID_HOME`, `GITHUB_ENV`). No untrusted PR/issue/commit
+# fields are interpolated into shell commands.
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Install Slint host build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            clang \
+            cmake \
+            ninja-build
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: cargo test (host)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Slint host build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            clang \
+            cmake \
+            ninja-build
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+
+  apk:
+    name: Build APK (aarch64)
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANDROID_API: "34"
+      ANDROID_BUILD_TOOLS: "34.0.0"
+      ANDROID_NDK_VERSION: "27.0.12077973"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ""
+
+      - name: Install Android platform, build-tools, NDK
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-$ANDROID_API" \
+            "build-tools;$ANDROID_BUILD_TOOLS" \
+            "ndk;$ANDROID_NDK_VERSION"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-apk
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo apk build --release
+        run: cargo apk build --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-aarch64
+          path: target/aarch64-linux-android/release/apk/*.apk
+          if-no-files-found: error

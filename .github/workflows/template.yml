@@ -64,7 +64,8 @@ jobs:
               app/src/lib.rs \
               app/ui/main.slint \
               .devcontainer/Dockerfile \
-              .devcontainer/devcontainer.json; do
+              .devcontainer/devcontainer.json \
+              .github/workflows/ci.yml; do
             if [ ! -f "$f" ]; then
               echo "::error::expected file is missing: $f"
               exit 1
@@ -76,7 +77,8 @@ jobs:
           for f in \
               _README.md \
               post-script.rhai \
-              cargo-generate.toml; do
+              cargo-generate.toml \
+              .github/workflows/template.yml; do
             if [ -f "$f" ]; then
               echo "::error::stray template file leaked into output: $f"
               exit 1

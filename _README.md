@@ -91,6 +91,19 @@ JVM class), the natural extension is:
   Kotlin file that subclasses `android.app.Service` and delegates into it.
 - `app/` and `service/` both depend on `core/`.
 
+## CI
+
+`.github/workflows/ci.yml` ships with this project. It runs:
+
+- `cargo fmt --check` and `cargo clippy -D warnings` on every push and PR
+- `cargo test --workspace` on every push and PR
+- `cargo apk build --release` on pushes to `main`/`master`, uploading the
+  resulting `.apk` as the `apk-aarch64` artifact
+
+The Android build job sets up JDK 17, the Android SDK (platform 34,
+build-tools 34.0.0), NDK r27, and `cargo-apk` — mirroring what the
+`.devcontainer/Dockerfile` provides locally.
+
 ## Notes
 
 - The Slint feature flag `backend-android-activity-06` tracks
