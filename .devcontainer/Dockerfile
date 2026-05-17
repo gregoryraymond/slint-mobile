@@ -4,8 +4,10 @@
 #
 # What this image documents (and provides):
 #   - Rust stable + aarch64-linux-android target
-#   - cargo-apk (the APK packager)
-#   - JDK 17 (required by Android build-tools / aapt2)
+#   - cargo-apk2 (active fork of cargo-apk; the APK packager)
+#   - JDK 17 (required by Android build-tools / aapt2 + cargo-apk2's javac path)
+#   - Kotlin compiler (cargo-apk2 invokes kotlinc when a crate declares
+#     kotlin_sources; harmless when nothing does)
 #   - Android SDK: platform-tools, platforms;android-34, build-tools;34.0.0
 #   - Android NDK r27 (Slint's Skia renderer needs NDK >= 25)
 #   - Native deps Skia drags in via slint (fontconfig, ssl, pkg-config)
@@ -29,7 +31,7 @@ ENV ANDROID_HOME=/opt/android-sdk \
 # --- System packages --------------------------------------------------------
 # openjdk-17 → required by sdkmanager and the Android build-tools.
 # unzip/wget → bootstrapping the SDK below.
-# adb        → so `cargo apk run` can talk to devices/emulators.
+# adb        → so `cargo apk2 run` can talk to devices/emulators.
 # pkg-config, libfontconfig1-dev, libssl-dev → transitive native deps from
 #   Slint's Skia renderer on Linux host builds (cargo check on the host
 #   side; the Android build links its own copies via the NDK).
@@ -62,20 +64,32 @@ RUN mkdir -p "${ANDROID_HOME}/cmdline-tools" \
         "ndk;${ANDROID_NDK_VERSION}" \
     && chmod -R a+rX "${ANDROID_HOME}"
 
-# --- Rust Android target + cargo-apk ---------------------------------------
+# --- Kotlin compiler --------------------------------------------------------
+# cargo-apk2 only shells out to kotlinc when a crate declares
+# kotlin_sources, but bundling it here makes that path zero-config when a
+# downstream crate (e.g. slint-android-gestures) opts in.
+ARG KOTLIN_VERSION=1.9.0
+ENV KOTLIN_HOME=/opt/kotlinc \
+    PATH=/opt/kotlinc/bin:${PATH}
+RUN wget -q "https://github.com/JetBrains/kotlin/releases/download/v${KOTLIN_VERSION}/kotlin-compiler-${KOTLIN_VERSION}.zip" -O /tmp/kotlinc.zip \
+    && unzip -q /tmp/kotlinc.zip -d /opt \
+    && rm /tmp/kotlinc.zip
+
+# --- Rust Android target + cargo-apk2 ---------------------------------------
 # Run as the vscode user so cargo's install dir is in $HOME/.cargo and
 # matches what rust-analyzer / the user's shell will see at runtime.
 USER vscode
 RUN rustup target add aarch64-linux-android x86_64-linux-android \
-    && cargo install cargo-apk just --locked
+    && cargo install cargo-apk2 just --locked
 
 # Sanity check: print versions at image-build time so any drift is obvious
 # in the build log.
 RUN rustc --version \
     && cargo --version \
-    && cargo apk --version \
+    && cargo apk2 --version \
     && just --version \
     && javac -version \
+    && kotlinc -version \
     && sdkmanager --version
 
 USER root

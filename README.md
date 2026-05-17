@@ -3,7 +3,12 @@
 A [`cargo-generate`](https://github.com/cargo-generate/cargo-generate) template
 for **Slint UI applications targeting Android**. The generated project is a
 Rust workspace with a pure-logic `core` crate and a Slint-powered `app` crate
-that compiles directly to an APK via `cargo-apk`. No Kotlin or Java source.
+that compiles directly to an APK via
+[`cargo-apk2`](https://github.com/mzdk100/cargo-apk2) — the active fork of
+`cargo-apk` that supports compiling Kotlin/Java sources into the APK
+alongside the Rust `cdylib`. No Kotlin in the generated project by default;
+opt-in by adding a glue crate (e.g. `slint-android-gestures`) or dropping
+`.kt` files into `app/kotlin/`.
 
 ## Generate a new project
 
@@ -35,10 +40,10 @@ my-app/
 │   └── ci.yml             # Calls into `justfile`; fmt + clippy + test on every PR; apk on main
 ├── justfile               # Recipes shared by local dev and CI (just --list)
 ├── core/                  # Pure-logic rlib (no Slint, no Android)
-└── app/                   # Slint cdylib + android_main, packaged by cargo-apk
+└── app/                   # Slint cdylib + android_main, packaged by cargo-apk2
 ```
 
-`cargo apk run` in the generated project builds, installs, and launches
+`cargo apk2 run` in the generated project builds, installs, and launches
 on an attached device — no `-p` or `--target` flags needed (handled by
 `default-members` and `[package.metadata.android].build_targets`).
 
@@ -81,5 +86,5 @@ generate into a scratch directory:
 ```sh
 cargo generate --path . --name scratch --define android_package=com.example.scratch --define app_label="Scratch"
 cd scratch
-cargo apk build
+cargo apk2 build
 ```

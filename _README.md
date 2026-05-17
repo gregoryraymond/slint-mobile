@@ -1,7 +1,10 @@
 # {{project-name}}
 
 A [Slint](https://slint.dev) UI compiled to an Android APK. All application
-logic is in Rust; there is no Kotlin or Java source.
+logic is in Rust; the only Kotlin/Java in the build is whatever JVM-side
+glue crates pull in (e.g. `slint-android-gestures` for multi-touch). For a
+"pure native, no JVM glue at all" app the only thing left in `classes.dex`
+is the bundled `NativeActivity` Slint already needs.
 
 ## Layout
 
@@ -30,17 +33,19 @@ Rust source files don't carry the project name in their imports.
 ## One-time setup
 
 The fastest path is to open this repo in the provided dev container — it
-ships Rust + cargo-apk + JDK 17 + Android SDK 34 + NDK r27 pre-installed
-and pinned. See [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile) for
-the exact versions. To set things up manually instead:
+ships Rust + cargo-apk2 + JDK 17 + Kotlin + Android SDK 34 + NDK r27
+pre-installed and pinned. See [`.devcontainer/Dockerfile`](.devcontainer/Dockerfile)
+for the exact versions. To set things up manually instead:
 
 1. Install the Android target:
    ```sh
    rustup target add aarch64-linux-android
    ```
-2. Install [`cargo-apk`](https://github.com/rust-mobile/cargo-apk):
+2. Install [`cargo-apk2`](https://github.com/mzdk100/cargo-apk2) — the
+   actively-maintained fork of `cargo-apk` that adds Kotlin/Java source
+   compilation and declarative activity/service blocks:
    ```sh
-   cargo install cargo-apk
+   cargo install cargo-apk2 --locked
    ```
 3. Install Android Studio (or the command-line tools) and a recent NDK.
    Export the SDK and NDK locations:
@@ -48,7 +53,11 @@ the exact versions. To set things up manually instead:
    export ANDROID_HOME="$HOME/Android/Sdk"
    export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/<version>"
    ```
-   `cargo-apk` also needs a JDK on `PATH` (or `JAVA_HOME` set).
+   `cargo-apk2` also needs a JDK on `PATH` (or `JAVA_HOME` set), plus
+   `KOTLIN_HOME` pointing at an unpacked Kotlin distribution from
+   <https://kotlinlang.org/docs/command-line.html> — only required if
+   any of your dependencies actually ship Kotlin source; pure-Rust apps
+   build without it.
 
 ## Build & run
 
@@ -92,16 +101,24 @@ on real devices and on the default emulator system image.
 If you prefer raw cargo invocations they all still work — `just` is
 a convenience layer, not a wrapper that adds new behavior.
 
-## Adding a JVM-side Rust shim later
+## Adding JVM-side glue
 
-This scaffold renders directly via `NativeActivity` — no Kotlin or Java is
-involved. If you later need a privileged Android `Service` (which must be a
-JVM class), the natural extension is:
+This scaffold renders directly via `NativeActivity` — no Kotlin or Java
+in your tree by default. cargo-apk2 makes adding it incremental:
 
-- Keep `core/` as the shared logic crate.
-- Add a `service/` crate exposing a `uniffi`-generated SDK plus a small
-  Kotlin file that subclasses `android.app.Service` and delegates into it.
-- `app/` and `service/` both depend on `core/`.
+- **Drop-in glue from a crate** — add the crate as a dep, point its
+  `build.rs` helper at a `kotlin/` directory, set `kotlin_sources =
+  "kotlin"` in `[package.metadata.android]`, and the JVM classes land in
+  the APK's `classes.dex` on a normal `just build`. See
+  [`slint-android-gestures`](https://github.com/gregoryraymond/slint-mapping/tree/main/crates/slint-android-gestures)
+  for a complete example (multi-touch pinch wrapper).
+- **Hand-written glue** — drop `.kt` files into `app/kotlin/<package>/`
+  and the same `kotlin_sources = "kotlin"` config picks them up. Useful
+  for one-off Android API access (location permissions, push, billing).
+- **Service crates** — for a privileged Android `Service` you can wrap
+  the JVM subclass in its own crate, ship its `.kt` the same way, and
+  declare it via `[[package.metadata.android.service]]` (a cargo-apk2
+  feature the legacy cargo-apk lacked).
 
 ## CI
 
@@ -117,8 +134,8 @@ This keeps CI and local development in sync — if `just ci` is green on
 your laptop, the PR's lint/test jobs will be too.
 
 The Android build job sets up JDK 17, the Android SDK (platform 34,
-build-tools 34.0.0), NDK r27, and `cargo-apk` — mirroring what the
-`.devcontainer/Dockerfile` provides locally.
+build-tools 34.0.0), NDK r27, `cargo-apk2`, and Kotlin — mirroring what
+the `.devcontainer/Dockerfile` provides locally.
 
 ## Notes
 

@@ -25,13 +25,13 @@ test:
 
 # Build a debug APK (multi-arch: aarch64 + x86_64)
 build:
-    # cargo-apk doesn't honor `default-members`; run from the app/ dir so
+    # cargo-apk2 doesn't honor `default-members`; run from the app/ dir so
     # the cdylib package is selected unambiguously.
-    cd app && cargo apk build
+    cd app && cargo apk2 build
 
 # Build a release APK (multi-arch: aarch64 + x86_64)
 release:
-    cd app && cargo apk build --release
+    cd app && cargo apk2 build --release
 
 # Idempotent: re-running on an existing AVD is a no-op for creation. Picks
 # the system-image ABI to match the host: x86_64 on Intel/AMD, arm64-v8a
@@ -90,7 +90,7 @@ run:
     adb wait-for-device
     adb shell 'while [ "$(getprop sys.boot_completed | tr -d "\r")" != "1" ]; do sleep 2; done'
     echo "Device ready."
-    cd app && cargo apk run
+    cd app && cargo apk2 run
 
 # Full local CI pipeline (mirrors what runs on PRs)
 ci: fmt-check clippy test

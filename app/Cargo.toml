@@ -16,9 +16,13 @@ app_core = { workspace = true }
 [build-dependencies]
 slint-build = { workspace = true }
 
-# cargo-apk configuration. Everything under [package.metadata.android] is
-# read by cargo-apk when packaging the cdylib into an APK. `build_targets`
-# here is what lets `cargo apk run` work without an explicit `--target`.
+# cargo-apk2 configuration. Everything under [package.metadata.android] is
+# read by cargo-apk2 when packaging the cdylib into an APK. `build_targets`
+# here is what lets `cargo apk2 run` work without an explicit `--target`.
+#
+# cargo-apk2 also supports `kotlin_sources = "kotlin"` (and `java_sources`)
+# if you grow JVM-side glue later — see the README's "Adding JVM-side
+# glue" section. The default project doesn't ship any.
 [package.metadata.android]
 package = "{{android_package}}"
 # Build both ABIs by default: aarch64 is the only architecture on real

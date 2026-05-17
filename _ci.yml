@@ -99,7 +99,21 @@ jobs:
 
       - uses: taiki-e/install-action@v2
         with:
-          tool: just,cargo-apk
+          tool: just
+
+      # cargo-apk2 isn't packaged by taiki-e/install-action, so install
+      # from crates.io. The Swatinem cache below covers it on re-runs.
+      - run: cargo install cargo-apk2 --locked
+
+      # Kotlin compiler — only invoked by cargo-apk2 when a crate declares
+      # `kotlin_sources`. Cheap enough to bundle unconditionally so that
+      # any future glue crate Just Works on CI without revisiting this file.
+      - name: Install Kotlin compiler
+        run: |
+          curl -sSL https://github.com/JetBrains/kotlin/releases/download/v1.9.0/kotlin-compiler-1.9.0.zip -o /tmp/kotlinc.zip
+          unzip -q /tmp/kotlinc.zip -d "$HOME"
+          echo "KOTLIN_HOME=$HOME/kotlinc" >> "$GITHUB_ENV"
+          echo "$HOME/kotlinc/bin" >> "$GITHUB_PATH"
 
       - uses: Swatinem/rust-cache@v2
 

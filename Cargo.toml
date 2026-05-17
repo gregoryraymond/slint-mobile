@@ -1,6 +1,6 @@
 [workspace]
 members = ["core", "app"]
-# `cargo apk run` (no -p flag) resolves to this package. The app crate's
+# `cargo apk2 run` (no -p flag) resolves to this package. The app crate's
 # [package.metadata.android] then pins `build_targets = ["aarch64-linux-android"]`,
 # so the target is implicit too. Use `cargo test --workspace` to exercise
 # core's tests as well.
