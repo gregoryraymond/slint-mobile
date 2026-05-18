@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>slint-mobile — Slint UI on Android, in pure Rust</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%233DDC84' d='M7 2h10a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3zm5 17a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'/%3E%3C/svg%3E">
+    <meta name="description" content="A cargo-generate template for Slint UI applications targeting Android, written in pure Rust.">
+    <style>
+        :root {
+            --bg: #0f1115;
+            --surface: #1a1d24;
+            --fg: #f5f5f7;
+            --muted: #9aa0a6;
+            --accent: #4f8cff;
+            --android: #3DDC84;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--fg);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            line-height: 1.55;
+        }
+        body {
+            max-width: 880px;
+            margin: 0 auto;
+            padding: 56px 32px 80px;
+        }
+        header { margin-bottom: 56px; }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 44px;
+            letter-spacing: -0.02em;
+        }
+        h2 {
+            margin: 48px 0 16px;
+            font-size: 24px;
+            letter-spacing: -0.01em;
+        }
+        .tagline {
+            color: var(--muted);
+            font-size: 18px;
+            margin: 0;
+        }
+        .badges {
+            margin: 24px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .badges img { display: block; }
+        .cta {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .cta.secondary {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .cta + .cta { margin-left: 8px; }
+        a { color: var(--accent); }
+        pre {
+            background: var(--surface);
+            padding: 16px 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        code {
+            font-family: ui-monospace, "JetBrains Mono", monospace;
+        }
+        ul { padding-left: 22px; }
+        li { margin: 6px 0; }
+        .catalogue-frame {
+            margin-top: 16px;
+            border: 1px solid var(--surface);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        iframe {
+            display: block;
+            width: 100%;
+            height: 780px;
+            border: 0;
+        }
+        footer {
+            margin-top: 56px;
+            padding-top: 24px;
+            border-top: 1px solid var(--surface);
+            color: var(--muted);
+            font-size: 13px;
+        }
+        footer a { color: var(--muted); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>slint-mobile</h1>
+        <p class="tagline">A <code>cargo-generate</code> template for Slint UI applications targeting Android, written in pure Rust.</p>
+        <div class="badges">
+            <a href="https://github.com/gregoryraymond/slint-mobile"><img alt="GitHub" src="https://img.shields.io/badge/github-repo-181717?style=flat-square&logo=github"></a>
+            <a href="https://github.com/gregoryraymond/slint-mobile-components"><img alt="Components" src="https://img.shields.io/badge/sibling-slint--mobile--components-1d76db?style=flat-square"></a>
+            <img alt="License" src="https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue?style=flat-square">
+            <img alt="Target" src="https://img.shields.io/badge/target-Android-3DDC84?style=flat-square">
+        </div>
+        <p>
+            <a class="cta" href="https://github.com/gregoryraymond/slint-mobile">View on GitHub →</a>
+            <a class="cta secondary" href="https://gregoryraymond.github.io/slint-mobile-components/">Browse the components catalogue →</a>
+        </p>
+    </header>
+
+    <h2>Generate a new project</h2>
+    <pre><code>cargo install cargo-generate
+cargo generate --git https://github.com/gregoryraymond/slint-mobile --name my-app
+cd my-app
+just run     # builds, installs, and launches on the connected device</code></pre>
+    <p>
+        Prompts for an Android package name (e.g.&nbsp;<code>com.example.my_app</code>)
+        and an app label. The generated project has its own <code>README.md</code>,
+        a pinned dev-container, and a green-from-day-one CI workflow that
+        produces an APK artifact on every push to <code>main</code>.
+    </p>
+
+    <h2>What you get</h2>
+    <ul>
+        <li>Rust workspace with a pure-logic <code>core</code> crate and a Slint UI <code>app</code> crate.</li>
+        <li><a href="https://github.com/mzdk100/cargo-apk2"><code>cargo-apk2</code></a> packaging — no Gradle, no Android Studio, no JVM glue unless you ask for it.</li>
+        <li>Pinned <code>.devcontainer/</code> with Rust + JDK&nbsp;17 + Android SDK&nbsp;34 + NDK&nbsp;r27.</li>
+        <li>Justfile recipes for <code>fmt</code>, <code>clippy</code>, <code>test</code>, <code>build</code>, <code>run</code>, <code>release</code>, <code>setup-emulator</code>, <code>ci</code>.</li>
+        <li>Pre-wired to pair with <a href="https://github.com/gregoryraymond/slint-mobile-components">slint-mobile-components</a> — 145 ready-made page templates and 31 reusable widgets.</li>
+    </ul>
+
+    <h2>See the design system in action</h2>
+    <p>
+        The Pages site for the sibling
+        <a href="https://github.com/gregoryraymond/slint-mobile-components">slint-mobile-components</a>
+        repo serves the entire 145-page catalogue as a wasm-compiled
+        infinite-scroll grid that reflows to the browser width. It's the
+        fastest way to audition what the design system offers before
+        deciding what to drop into a generated app:
+    </p>
+    <p>
+        <a class="cta" href="https://gregoryraymond.github.io/slint-mobile-components/">
+            Open the live catalogue →
+        </a>
+    </p>
+    <div class="catalogue-frame">
+        <iframe src="https://gregoryraymond.github.io/slint-mobile-components/"
+                title="slint-mobile-components catalogue"
+                loading="lazy"></iframe>
+    </div>
+
+    <footer>
+        <p>
+            slint-mobile is dual-licensed under
+            <a href="https://github.com/gregoryraymond/slint-mobile/blob/main/LICENSE-MIT">MIT</a>
+            or
+            <a href="https://github.com/gregoryraymond/slint-mobile/blob/main/LICENSE-APACHE">Apache-2.0</a>.
+            Slint itself ships under the
+            <a href="https://slint.dev/pricing">Slint Royalty-free licence</a> —
+            see Slint's pricing page for the commercial terms.
+        </p>
+        <p>
+            ☕ Like the template? <a href="https://buymeacoffee.com/gregoryraymond">Buy me a coffee</a>
+            or <a href="https://github.com/sponsors/gregoryraymond">sponsor on GitHub</a>.
+        </p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,45 @@
+name: Deploy landing page to GitHub Pages
+
+# Publishes the static web/ directory at /. Tiny payload — no
+# build step, no toolchain, just the HTML/CSS landing page that
+# describes the template and iframes the sibling
+# slint-mobile-components catalogue.
+#
+# Security note: no run: block interpolates github.event.*, github.head_ref,
+# or any other potentially-attacker-controlled value. The only template
+# expression in a non-action context is steps.deployment.outputs.page_url,
+# which is GitHub-generated.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
